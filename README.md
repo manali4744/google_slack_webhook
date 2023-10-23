@@ -25,3 +25,11 @@
   ```bash
   uvicorn main:app --reload
   ```
+
+# Slack Webhook Setup
+
+Navigate to the URL(https://api.slack.com/apps/<app-info>/event-subscriptions?) and modify the event subscription URL as needed.
+
+Within your Slack workspace, there exists an app known as "Webhook." Customize this app by including the channel name in which you desire to establish a connection with the webhook.
+
+      
