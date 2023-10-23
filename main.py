@@ -1,21 +1,23 @@
 from fastapi import FastAPI, Request, HTTPException
 import json
 from starlette import status
-from fastapi.responses import RedirectResponse
-from httpx import AsyncClient
-import requests
 import credential_handler
 import drive
 from starlette import status
 import base64
 import json
 import gmail
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
+import slack
+import os
+from dotenv import load_dotenv
+import datetime
 
+load_dotenv()
 
+slack_data = slack.WebClient(token=os.environ.get("SLACK_TOKEN"))
 
 app = FastAPI()
-
 
 credential_handler.get_creds()
 
@@ -23,6 +25,7 @@ credential_handler.get_creds()
 @app.get("/")
 async def root(request: Request):
     return {"message": "Hello World"}
+
 
 @app.post("/gmail/")
 async def handle_gmail(request: Request):
@@ -64,3 +67,23 @@ async def handle_gmail(request: Request):
         data = drive.search_file(file_id)
         print(data)
     return {'status': status.HTTP_200_OK}
+
+
+@app.post("/slack/")
+async def handle_slack(request: Request):
+    request_body = await request.body()
+    data = json.loads(request_body.decode('utf-8'))
+    user_Id=data['event']['user']
+    user_data=slack_data.users_profile_get(user=user_Id)
+    Channel_Id=data['event']['channel']
+    Channel = slack_data.conversations_info(channel=Channel_Id)
+    print("Type:",data['type'])
+    time = data['event_time']
+    dt_object = datetime.datetime.fromtimestamp(time)
+    formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+    print("Date & Time:", formatted_time)
+    print("channel_name:", Channel['channel']['name'])
+    print("User_Profile_name:", user_data['profile']['real_name'])
+    print("User_Profile_email:", user_data['profile']['email'])
+    print("message_text:",data['event']['text'])
+    return {'status': status.HTTP_200_OK, 'body': data}

@@ -9,9 +9,9 @@ SCOPE = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/au
 
 def request_creds():
     creds = None
-    if os.path.exists('client_secret_328702914631-ifv9agucaaog09i3742kbbu31bhggh1f.apps.googleusercontent.com (10).json'):
+    if os.path.exists('client_secret.json'):
         flow = InstalledAppFlow.from_client_secrets_file(
-            'client_secret_328702914631-ifv9agucaaog09i3742kbbu31bhggh1f.apps.googleusercontent.com (10).json',
+            'client_secret.json',
             scopes=SCOPE)
         creds = flow.run_local_server(port=8080)
         with open('token.json', 'w') as token:
