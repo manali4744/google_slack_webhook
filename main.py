@@ -1,28 +1,47 @@
 from fastapi import FastAPI, Request, HTTPException
 import json
 from starlette import status
+from fastapi.responses import RedirectResponse
+from httpx import AsyncClient
 import credential_handler
 import drive
-from starlette import status
 import base64
-import json
 import gmail
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import slack
+from slackeventsapi import SlackEventAdapter
 import os
 from dotenv import load_dotenv
 import datetime
+import webhook
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import time
 
 load_dotenv()
 
+# Initialize the Slack WebClient with the provided token
 slack_data = slack.WebClient(token=os.environ.get("SLACK_TOKEN"))
 
+
+# Create a FastAPI application instance
 app = FastAPI()
 
 credential_handler.get_creds()
 
+def drive_webhook_check():
+    data = webhook.webhook()
+    print(data)
+    print("Process and handle webhook data", time.ctime())
 
-@app.get("/")
+scheduler = BackgroundScheduler()
+
+scheduler.add_job(drive_webhook_check, CronTrigger(hour=11))
+scheduler.add_job(drive_webhook_check, CronTrigger(hour=23))
+
+scheduler.start()
+
+@app.get("/drive_webhook/")
 async def root(request: Request):
     return {"message": "Hello World"}
 
@@ -46,11 +65,12 @@ async def handle_gmail(request: Request):
         print(json.dumps(data, indent=2))
         print("pub_id", pub_id)
         print("publish_time", publish_time)
+
         gmail.get_mail_details()
         return {'status': status.HTTP_200_OK}
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON data")
-    
+
 
 @app.post("/drive/")
 async def handle_gmail(request: Request):
@@ -71,19 +91,23 @@ async def handle_gmail(request: Request):
 
 @app.post("/slack/")
 async def handle_slack(request: Request):
-    request_body = await request.body()
-    data = json.loads(request_body.decode('utf-8'))
-    user_Id=data['event']['user']
-    user_data=slack_data.users_profile_get(user=user_Id)
-    Channel_Id=data['event']['channel']
-    Channel = slack_data.conversations_info(channel=Channel_Id)
-    print("Type:",data['type'])
-    time = data['event_time']
-    dt_object = datetime.datetime.fromtimestamp(time)
-    formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
-    print("Date & Time:", formatted_time)
-    print("channel_name:", Channel['channel']['name'])
-    print("User_Profile_name:", user_data['profile']['real_name'])
-    print("User_Profile_email:", user_data['profile']['email'])
-    print("message_text:",data['event']['text'])
+    try:
+        request_body = await request.body()
+        data = json.loads(request_body.decode('utf-8'))
+        user_Id=data['event']['user']
+        user_data=slack_data.users_profile_get(user=user_Id)
+        Channel_Id=data['event']['channel']
+        Channel = slack_data.conversations_info(channel=Channel_Id)
+        print("Type:",data['type'])
+        time = data['event_time']
+        dt_object = datetime.datetime.fromtimestamp(time)
+        formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+        print("Date & Time:", formatted_time)
+        print("channel_name:", Channel['channel']['name'])
+        print("User_Profile_name:", user_data['profile']['real_name'])
+        print("User_Profile_email:", user_data['profile']['email'])
+        print("message_text:",data['event']['text'])
+    except:
+        request_body = await request.body()
+        data = json.loads(request_body.decode('utf-8'))
     return {'status': status.HTTP_200_OK, 'body': data}
