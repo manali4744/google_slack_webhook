@@ -5,7 +5,7 @@ from google.auth.transport.requests import Request
 
 import sys
 
-SCOPE = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/gmail.readonly"]
+SCOPE = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/gmail.readonly", "https://mail.google.com/"]
 
 def request_creds():
     creds = None

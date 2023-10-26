@@ -28,16 +28,17 @@ slack_data = slack.WebClient(token=os.environ.get("SLACK_TOKEN"))
 app = FastAPI()
 
 credential_handler.get_creds()
+gmail.gmail_watch()
 
-def drive_webhook_check():
+def webhook_check():
     data = webhook.webhook()
-    print(data)
+    gmail.gmail_watch()
     print("Process and handle webhook data", time.ctime())
 
 scheduler = BackgroundScheduler()
 
-scheduler.add_job(drive_webhook_check, CronTrigger(hour=11))
-scheduler.add_job(drive_webhook_check, CronTrigger(hour=23))
+scheduler.add_job(webhook_check, CronTrigger(hour=11))
+scheduler.add_job(webhook_check, CronTrigger(hour=23))
 
 scheduler.start()
 
